@@ -1,5 +1,6 @@
 
 ## Behavioral Cloning Project
+by Cristian Alberch submitted on May 2021 as part of Udacity Self Driving Car Engineer 
 
 The goals / steps of this project are the following:
 
@@ -9,73 +10,86 @@ The goals / steps of this project are the following:
 #### Test that the model successfully drives around track one without leaving the road.
 #### Summarize the results with a written report.
 
-1. Submission includes all required files and can be used to run the simulator in autonomous mode
+1. My project includes the following files:
 
-My project includes the following files:
-
--  model.py containing the script to create and train the model.
+- model.py containing the script to create and train the model.
 - drive.py for driving the car in autonomous mode.
 - model.h5 containing a trained convolution neural network.
 - writeup_report.md this report summarizing the results.
 
-2. Submission includes functional code
-
-Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing python drive.py model.h5
-
-3. Submission code is usable and readable
-
-The model.py file contains the code for training and saving the convolution neural network. The file shows the pipeline I used for training and validating the model, and it contains comments to explain how the code works.
-
-Model Architecture and Training Strategy
-1. An appropriate model architecture has been employed.
-
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24)
-
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18).
-
-2. Attempts to reduce overfitting in the model
-
-The model contains dropout layers in order to reduce overfitting (model.py lines 21).
-
-The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
-3. Model parameter tuning
-
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
-
-![Training and validation loss](loss_function.png)
-
-4. Appropriate training data
-
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ...
-
-For details about how I created the training data, see the next section.
+## 1. Training model pipeline
+The Python script to train the model is model.py which contains the pipeline to train the neural network. 
 
 
+#### 1.1 Reading the data
+The csv file containing the image file path and corresponding steering angle information is read using function log_reader. 
+```
+def log_reader(path):
+    lines = []
+    with open(path+'/driving_log.csv') as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            lines.append(line)
+    return lines
+```
 
-### Model Architecture and Training Strategy
-1. Solution Design Approach
+#### 1.2 Training and Validation data
+The data contents are split into training and validation datasets (80-20% split) to ensure the model does not overfit during training and maintains a high accuracy when using test data it has never seen before.
 
-The overall strategy for deriving a model architecture was to ...
+```
+train_data, validation_data = train_test_split(data, test_size=0.2)
+```
 
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
+#### 1.3 Breaking the data in batches 
+The training and validation data is broken into batches of size 64 and fed into a generator function that iterates through the training and validation datasets iteratively until the entire dataset is fed into the training function. This is useful for memory management and also helps avoid overfitting.
 
-In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting.
+```
+train_generator = generator(train_data, batch_size = 64)
+validation_generator = generator(validation_data, batch_size = 64)
+```
 
-To combat the overfitting, I modified the model so that ...
+#### 1.4 Data from multiple Cameras
+The training data includes images taken from center, left and right cameras. The measurement steering angle is compensated depending on the image (left image is corrected by -ve 0.2, and right image by +ve 0.2).
 
-Then I ...
+```
+for i in range(3): #iterate to get images: center, left, right
+    image = cv2.imread(sample[i])
+    images.append(image)
+    measurement = float(sample[3])
+    if i==0: #center image 
+        correction = 0
+    elif i==1: #left image
+        correction = 0.2
+    elif i==2: #right image
+        correction = -0.2
+    measurement = float(sample[3])+correction
+    measurements.append(measurement)
+```
 
-The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track... to improve the driving behavior in these cases, I ....
+#### 1.5 Data Augmentation
+As the majority of the training race track is counter-clockwise, the training data has a left bias. In order to augment the training data, the training images and measurements are flipped along the vertical axis to simulate reverse direction and create double the amount of training images.
+```
+def data_augmentation (images, measurements):
+    #augmenting images by flipping them horizontally
+    augmented_images, augmented_measurements = [], []
+    for image, measurement in zip(images, measurements):
+        augmented_images.append(image)
+        augmented_measurements.append(measurement)        
+        augmented_images.append(np.fliplr(image))
+        augmented_measurements.append(measurement*-1.0)
+    return augmented_images, augmented_measurements
+```
 
-At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
+## 2. Model Architecture
 
-2. Final Model Architecture
-
+#### 2.1 Model Hyper-parameters
 The neural network is a modified version of LeNet architecture and the following parameters modified to obtain the model with the highest validation accuracy improvement:
 - Learning rate: Adam optimizer was used.
 - Batch size: 64
-- Dropout layer location "ELU" with fter ReLU wasa selected.
-- Number of training epochs (upto 200). 40 was selected.
+- Activation layer "ELU" with alpha = 0.1.
+- Dropout layer with dropout probability = 0.25.
+- Learning rate: uses an Adam optimizer.
+- Number of training epochs: 15 was selected.
 
 The neural network model consisted of the following layers:
 
@@ -122,61 +136,25 @@ The neural network model consisted of the following layers:
 | Fully Connected     	| outputs 10 x 1                              	|
 |.......................|...............................................| 
 | Fully Connected     	| outputs 1 labels                            	|
-|.......................|...............................................| 
+|.......................|...............................................|
 
 
-3. Creation of the Training Set & Training Process
+
+#### 2.2 Validating the model.
+
+The model was trained and validated on different data sets to ensure that the model was not overfitting. The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
+
+The model mean squared loss plot shows the validation accuracy declining with increasing number of epochs which plateaus at around epoch number 15.
+![Training and validation loss](loss_function.png)
+
+## 3. Recording Training Data
+
+Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road.
+
+
+#### 3.1 Normal Driving
 
 To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
-
-alt text
-
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
-
-alt text alt text alt text
-
-
-
-
-Then I repeated this process on track two in order to get more data points.
-
-    def data_augmentation (images, measurements):
-        #augmenting images by flipping them horizontally
-        augmented_images, augmented_measurements = [], []
-        for image, measurement in zip(images, measurements):
-            augmented_images.append(image)
-            augmented_measurements.append(measurement)        
-            augmented_images.append(np.fliplr(image))
-            augmented_measurements.append(measurement*-1.0)
-        return augmented_images, augmented_measurements
-
-
-
-* The size of training set is 8,654 images. Training
-train_data, validation_data = train_test_split(data, test_size=0.2)
-
-### Data Augmentation:
-The training images are biased towards left steering angles in order to increase the dataset, the following
-
-- Flipping images
-- 
-
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
-
-alt text alt text
-
-Etc ....
-
-After the collection process, I had X number of data points. I then preprocessed this data by ...
-
-I finally randomly shuffled the data set and put Y% of the data into a validation set.
-
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
-
-
-### Multiple Cameras:
-
-For this project, recording recoveries from the sides of the road back to center is effective. But it is also possible to use all three camera images to train the model. When recording, the simulator will simultaneously save an image for the left, center and right cameras. Each row of the csv log file, driving_log.csv, contains the file path for each camera as well as information about the steering measurement, throttle, brake and speed of the vehicle.
 
 
 Left Camera image             |  Center Camera image          |  Right Camera image
@@ -185,26 +163,23 @@ Left Camera image             |  Center Camera image          |  Right Camera im
 
 
 
-    if i==0: #center image 
-        correction = 0
-    elif i==1: #left image
-        correction = 0.2
-    elif i==2: #right image
-        correction = -0.2
+#### 3.2 Abnormal Driving
+
+In order to train the model on corrective action in case the vehicle steers away from the road, I recorded the vehicle recovering from the left side and right sides of the road back to center.
+
+#### 3.3 Compiling Training Data
+
+The size of the final training set is 8,654 images.
 
 
-As there are 43 different labels to train, it is worth noting the distribution in the number of images per label in the training, validation and training datasets.
+## 4. Further Work
+Areas for further work:
 
+1. Increasing the training dataset may improve the model but will result in increased training time. This was not done at this stage as the model already took 2 hours to train. 
 
-#### 2.1 Pre-processing
+2. The training data can be further enhanced using image processing.
 
-
-
-#### Training the model
-
-Mean square error was used to calculate the loss function and AdamOptimizer to optimize the loss function.
-
-
+3. Multiple neural networks could be run in parallel with increased number of hyperparameter selections.
 
 
 Authors: Cristian Alberch https://github.com/cristiandatum
