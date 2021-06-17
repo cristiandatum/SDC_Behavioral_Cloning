@@ -1,6 +1,6 @@
 
 ## Behavioral Cloning Project
-by Cristian Alberch submitted on May 2021 as part of Udacity Self Driving Car Engineer 
+by Cristian Alberch submitted on June 2021 as part of Udacity Self Driving Car Engineer 
 
 The goals / steps of this project are the following:
 
@@ -16,6 +16,7 @@ The goals / steps of this project are the following:
 - drive.py for driving the car in autonomous mode.
 - model.h5 containing a trained convolution neural network.
 - writeup_report.md this report summarizing the results.
+- run1.mp4 showing autonomous driving.
 
 ## 1. Training model pipeline
 The Python script to train the model is model.py which contains the pipeline to train the neural network. 
@@ -85,53 +86,42 @@ def data_augmentation (images, measurements):
 #### 2.1 Model Hyper-parameters
 The neural network is a modified version of LeNet architecture and the following parameters modified to obtain the model with the highest validation accuracy improvement:
 - Learning rate: Adam optimizer was used.
-- Batch size: 64
-- Activation layer "ELU" with alpha = 0.1.
-- Dropout layer with dropout probability = 0.25.
+- Batch size: 64. Other batch sizes evaluted: 32, 128. 64 was found to be optimal in terms of validation error and training time.
+- Activation layer "RELU". "ELU" with alpha = 0.1 was tried but did not produce improved training/validation accuracy.
+- Dropout layer with dropout probability between the convolution and fully connected network parts. Varios configurations were tried with dropout layers in between layers with different dropout rates. The selected configuration provides a very fast training time.
 - Learning rate: uses an Adam optimizer.
-- Number of training epochs: 15 was selected.
+- Number of training epochs: 7 was selected as the validation plateaus after this epoch.
 
-The neural network model consisted of the following layers:
+After multiple, only partially successful attempts at creating a customized neural network, the NVIDIA model architecture was selected as it provided the best output with lower training time per epoch and lower number of epochs to achieve a high accuracy.
+
+The neural network model consists of the following layers:
 
 | Layer         		|     Description	        					| 
 |:---------------------:|:---------------------------------------------:| 
 | Input         		| 160 x 320 x 3 RGB image                       |
-| Cropping image     	| outputs 110 x 300 x 3 image  	                |
 | Normalize image     	| converts values from 0-255 to 0-1 range       |
 |.......................|...............................................| 
 | Convolution           | 2x2 stride, 'VALID' padding, outputs 24x24x5 	|
-| Activation			| ELU, alpha = 0.1								|
-| Dropout               | 0.25 probability                              |
+| Activation			| RELU          								|
 |.......................|...............................................| 
 | Convolution           | 2x2 stride, 'VALID' padding, outputs 36x5x5 	|
-| Activation			| ELU, alpha = 0.1								|
-| Dropout               | 0.25 probability                              |
+| Activation			| RELU			            					|
 |.......................|...............................................| 
 | Convolution           | 2x2 stride, 'VALID' padding, outputs 48x48x5 	|
 | Activation			| ELU, alpha = 0.1								|
-| Dropout               | 0.25 probability                              |
 |.......................|...............................................| 
-| Convolution           | outputs 64x3x3 	|
-| Activation			| ELU, alpha = 0.1								|
-| Dropout               | 0.25 probability                              |
+| Convolution           | outputs 64x3x3                             	|
+| Activation			| RELU          								|
 |.......................|...............................................| 
-| Convolution           | outputs 86x3x3 	                            |
-| Activation			| ELU, alpha = 0.1								|
-| Dropout               | 0.25 probability                              |
+| Convolution           | outputs 64x3x3 	                            |
+| Activation			| RELU          								|
 |.......................|...............................................| 
-| Convolution           | outputs 86x3x3                            	|
-| Activation			| ELU, alpha = 0.1								|
-| Dropout               | 0.25 probability                              |
+| Flatten   			|                 								|
+| Dropout               | 0.5 probability                               |
 |.......................|...............................................| 
-| Convolution           | outputs 24x24x5 	                            |
-| Activation			| ELU, alpha = 0.1								|
-| Dropout               | 0.25 probability                              |
+| Fully Connected     	| outputs 100 x 1	                            |
 |.......................|...............................................| 
-| Flatten Input     	| outputs 100 x 1	                            |
-| Dropout               | 0.25 probability                              |
-|.......................|...............................................| 
-| Flatten Input     	| outputs 50 x 1	                            |
-| Dropout               | 0.25 probability                              |
+| Fully Connected     	| outputs 50 x 1	                            |
 |.......................|...............................................| 
 | Fully Connected     	| outputs 10 x 1                              	|
 |.......................|...............................................| 
@@ -144,7 +134,7 @@ The neural network model consisted of the following layers:
 
 The model was trained and validated on different data sets to ensure that the model was not overfitting. The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
 
-The model mean squared loss plot shows the validation accuracy declining with increasing number of epochs which plateaus at around epoch number 15.
+The model mean squared loss plot shows the validation accuracy declining with increasing number of epochs which plateaus at around epoch number 7.
 ![Training and validation loss](loss_function.png)
 
 ## 3. Recording Training Data
@@ -169,19 +159,21 @@ In order to train the model on corrective action in case the vehicle steers away
 
 #### 3.3 Compiling Training Data
 
-The size of the final training set is 8,654 images.
+The size of the final training set is 21,679 images.
 
 
 ## 4. Further Work
 Areas for further work:
 
-1. Increasing the training dataset may improve the model but will result in increased training time. This was not done at this stage as the model already took 2 hours to train. 
+1. Increasing the training dataset may improve the model but will result in increased training time.
 
 2. The training data can be further enhanced using image processing.
 
 3. Multiple neural networks could be run in parallel with increased number of hyperparameter selections.
 
+4. The neural network architecture could be modified to include 'LSTM' to provide a model that can interpret behavior considering consecurive frames.
+
 
 Authors: Cristian Alberch https://github.com/cristiandatum
 
-License: This project is licensed under the MIT License. Feel free to use the code in the Jupyter Notebook as you like.
+License: This project is licensed under the MIT License.
